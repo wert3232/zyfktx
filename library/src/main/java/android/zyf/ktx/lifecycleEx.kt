@@ -39,8 +39,8 @@ open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
                     delay(delayTime)
                     block(newValue)
                 }
-            } else if(isThrottleLast){
-                if(timeout?.isActive != true){
+            } else if (isThrottleLast) {
+                if (timeout?.isActive != true) {
                     timeout = scope.launch {
                         delay(delayTime)
                         block(oldValue?.get())
@@ -78,10 +78,11 @@ open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
         delayTime = time
         this@AweObserver
     }
-    companion object{
-        fun <T : Any>notNull(block: (T) -> Unit) : AweObserver<T>{
-            return AweObserver{value ->
-                if(value != null){
+
+    companion object {
+        fun <T : Any> notNull(block: (T) -> Unit): AweObserver<T> {
+            return AweObserver { value ->
+                if (value != null) {
                     block(value)
                 }
             }
@@ -101,7 +102,7 @@ abstract class AweViewModel : ViewModel() {
         mutableSetOf<() -> Unit>()
     }
 
-    fun <T>LiveData<T>.viewModelObserveAfter(observer: Observer<T?>){
+    fun <T> LiveData<T>.viewModelObserveAfter(observer: Observer<T?>) {
         this.observeForeverAfter(observer)
         this@AweViewModel.addClear(this, observer)
     }
@@ -114,6 +115,17 @@ abstract class AweViewModel : ViewModel() {
                 }
             }
             list.add(Pair(WeakReference(liveData), WeakReference(observer)))
+        }
+    }
+
+    fun addClear(job: Job) {
+        run r@{
+            jobSet.forEach {
+                if (job.hashCode() == it.get().hashCode()) {
+                    return@r
+                }
+            }
+            jobSet.add(WeakReference(job))
         }
     }
 
@@ -133,9 +145,13 @@ abstract class AweViewModel : ViewModel() {
                 liveData.removeObserver(observer)
             }
         }
+        jobSet.forEach { it ->
+            it.get()?.cancel()
+        }
         taskSet.forEach {
             it.invoke()
         }
+        jobSet.clear()
         taskSet.clear()
         list.clear()
         super.onCleared()
@@ -145,6 +161,7 @@ abstract class AweViewModel : ViewModel() {
 open class AweMutableLiveData<T> : MutableLiveData<T> {
     constructor(value: T) : super(value)
     constructor() : super()
+
     inline fun observeAfter(owner: LifecycleOwner, crossinline block: (T?) -> Unit) {
         observeAfter(owner, Observer {
             block(it)
@@ -194,6 +211,7 @@ fun <T> LiveData<T>.observeAfter(owner: LifecycleOwner, observer: Observer<T?>) 
     }
     owner.lifecycle.addObserver(observerWrapper as LifecycleObserver)
 }
+
 /*
 *只在接收会收注册Observer之后的数据
 * 例如value a、b、(observeForeverAfter) c、d、e, 将只接手 c、d。e,没有b
