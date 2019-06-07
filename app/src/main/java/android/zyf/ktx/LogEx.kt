@@ -17,7 +17,7 @@ fun Application.buildSimplyTimber(isDebug: Boolean) {
 }
 
 /** A tree which logs important information for crash reporting.  */
-private class CrashReportingTree : Timber.Tree() {
+open class CrashReportingTree : Timber.Tree() {
     /**
      * Write a log message to its destination. Called for all level-specific methods by default.
      *
@@ -46,7 +46,7 @@ private class CrashReportingTree : Timber.Tree() {
 }
 
 @Suppress("UseExpressionBody")
-class FakeCrashLibrary private constructor() {
+open class FakeCrashLibrary private constructor() {
     companion object {
         fun log(priority: Int, tag: String?, message: String) {
             // TODO add log entry to circular buffer.

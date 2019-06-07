@@ -14,7 +14,7 @@ import androidx.annotation.DimenRes
 import androidx.appcompat.widget.AppCompatTextView
 
 interface ViewItem
-class Container(val context: Context, var view: ViewGroup? = null) : ViewItem {
+open class Container(val context: Context, var view: ViewGroup? = null) : ViewItem {
     fun addChild(child: View) {
         view!!.addView(child)
     }

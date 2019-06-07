@@ -9,7 +9,7 @@ import kotlinx.coroutines.launch
 import java.util.*
 import kotlin.reflect.KClass
 
-class SharedRepo(val shared: SharedPreferences) : CoroutineScope by MainScope() {
+open class SharedRepo(val shared: SharedPreferences) : CoroutineScope by MainScope() {
     private val onSharedPreferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
             launch {

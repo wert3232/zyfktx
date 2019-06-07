@@ -5,7 +5,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import android.util.AttributeSet
 import android.view.MotionEvent
 
-class EventConstraintLayout @JvmOverloads constructor(
+open class EventConstraintLayout @JvmOverloads constructor(
     context: Context,
     attributeSet: AttributeSet? = null,
     defStyleAttr: Int = 0

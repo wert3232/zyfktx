@@ -13,8 +13,7 @@ import java.lang.ref.WeakReference
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
-
-class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
+open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
     private var context: CoroutineContext = EmptyCoroutineContext
     private var supervisorJob = SupervisorJob(context[Job])
     private var scope: CoroutineScope = CoroutineScope(Dispatchers.Main + context + supervisorJob)
@@ -39,6 +38,13 @@ class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
                 timeout = scope.launch {
                     delay(delayTime)
                     block(newValue)
+                }
+            } else if(isThrottleLast){
+                if(timeout?.isActive != true){
+                    timeout = scope.launch {
+                        delay(delayTime)
+                        block(oldValue?.get())
+                    }
                 }
             } else {
                 block(newValue)
@@ -67,13 +73,19 @@ class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
         this@AweObserver
     }
 
-    /**
-     * 未实现
-     */
     private fun throttleLast(time: Long) = kotlin.run {
         isThrottleLast = true
         delayTime = time
         this@AweObserver
+    }
+    companion object{
+        fun <T : Any>notNull(block: (T) -> Unit) : AweObserver<T>{
+            return AweObserver{value ->
+                if(value != null){
+                    block(value)
+                }
+            }
+        }
     }
 }
 

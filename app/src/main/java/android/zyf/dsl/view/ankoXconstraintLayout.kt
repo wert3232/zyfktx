@@ -34,7 +34,7 @@ fun ConstraintLayout.applyConstraintSet(init: ConstraintSetBuilder.() -> Unit): 
 fun ConstraintLayout.constraintSet(init: ConstraintSetBuilder.() -> Unit): ConstraintSet =
     ConstraintSetBuilder().also { it.clone(this) }.apply(init)
 
-class LinkGroup(vararg views: View) {
+open class LinkGroup(vararg views: View) {
     var orientation = LayoutParams.HORIZONTAL
     var chainType = ConstraintSet.CHAIN_PACKED
     internal val list = views.toMutableList()
@@ -67,7 +67,7 @@ class LinkGroup(vararg views: View) {
     }
 }
 
-class ViewConstraintBuilder(
+open class ViewConstraintBuilder(
     @IdRes private val viewId: Int,
     private val constraintSetBuilder: ConstraintSetBuilder
 ) {
@@ -276,7 +276,7 @@ class ViewConstraintBuilder(
         }
 }
 
-class ConstraintSetBuilder : ConstraintSet() {
+open class ConstraintSetBuilder : ConstraintSet() {
     infix fun View.verticalBias(value: Float) {
         setVerticalBias(this.id, value)
     }
