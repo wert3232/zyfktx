@@ -13,7 +13,7 @@ import java.lang.ref.WeakReference
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
-open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
+open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T?> {
     private var context: CoroutineContext = EmptyCoroutineContext
     private var supervisorJob = SupervisorJob(context[Job])
     private var scope: CoroutineScope = CoroutineScope(Dispatchers.Main + context + supervisorJob)
@@ -23,6 +23,7 @@ open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
     private var isDebounce = false
     private var isThrottleLast = false
     private var oldValue: WeakReference<T?>? = null
+    private var filter: ((old: T?, new: T?) -> Boolean)? = null
     override fun onChanged(newValue: T?) {
         kotlin.run top@{
             if (isDistinct) {
@@ -30,6 +31,8 @@ open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
                     oldValue?.get() == newValue -> return@top
                 }
             }
+            val isPass = filter?.invoke(oldValue?.get(), newValue) ?: true
+            if (!isPass) return@top
             oldValue = WeakReference(newValue)
 
             //debounce
@@ -57,6 +60,11 @@ open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
         this
     }
 
+    fun filter(predicate: ((old: T?, new: T?) -> Boolean)) = kotlin.run {
+        filter = predicate
+        this
+    }
+
     fun setCoroutineContext(context: CoroutineContext) = kotlin.run {
         this.context = context
         supervisorJob = SupervisorJob(context[Job])
@@ -73,7 +81,7 @@ open class AweObserver<T : Any>(private val block: (T?) -> Unit) : Observer<T> {
         this@AweObserver
     }
 
-    private fun throttleLast(time: Long) = kotlin.run {
+    fun throttleLast(time: Long) = kotlin.run {
         isThrottleLast = true
         delayTime = time
         this@AweObserver
@@ -100,6 +108,11 @@ abstract class AweViewModel : ViewModel() {
     }
     private val taskSet by lazy {
         mutableSetOf<() -> Unit>()
+    }
+
+    fun <T> LiveData<T>.viewModelObserve(observer: Observer<T?>) {
+        this.observeForever(observer)
+        this@AweViewModel.addClear(this, observer)
     }
 
     fun <T> LiveData<T>.viewModelObserveAfter(observer: Observer<T?>) {
@@ -297,10 +310,9 @@ inline fun <T> MutableLiveData<T>.postSafeValue(_value: T, notSame: Boolean = fa
     }
 }
 
-
 inline fun <reified T> LiveEventBus.withType(key: String) = this.with(key, T::class.java)!!
 
-fun <T> LiveEventBus.Observable<T>.observe(aweViewModel: AweViewModel, observer: Observer<T>) {
+fun <T> LiveEventBus.Observable<T>.observe(aweViewModel: AweViewModel, observer: Observer<T?>) {
     this.observeForever(observer)
     aweViewModel.addClear {
         this.removeObserver(observer)
